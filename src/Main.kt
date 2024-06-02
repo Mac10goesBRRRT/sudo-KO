@@ -4,16 +4,14 @@ import kotlin.collections.ArrayList
 fun main() {
     val input = Input()
     val sudoku = Sudoku(input.getInput())
-
     println(sudoku.toString())
     sudoku.solve()
-
     println(sudoku.toString())
 }
 
 
 class Sudoku (input: Array<IntArray>){
-    private val readyCells: Queue<Pair<Int, Int>> = LinkedList()
+    private val readyCells: MutableSet<Pair<Int, Int>> = LinkedHashSet()
     private val sudoku: Array<Array<Field?>> = readInput(input)
 
     fun solve(){
@@ -50,14 +48,13 @@ class Sudoku (input: Array<IntArray>){
             }
         }
         while(readyCells.isNotEmpty()) {
-            println(readyCells)
-            val prc = readyCells.poll()
-            if(sudoku[prc.first][prc.second]?.lut?.size == 0)
-                continue
+            //println(readyCells)
+            val prc = readyCells.first()
+            readyCells.remove(prc)
             val toSet = sudoku[prc.first][prc.second]?.lut?.first()!!
             sudoku[prc.first][prc.second]?.value = toSet
             removeFromLut(prc.first, prc.second, toSet)
-            println(toString())
+            //println(toString())
         }
     }
 
@@ -65,10 +62,10 @@ class Sudoku (input: Array<IntArray>){
         for (r in 1 until 9 step 3) {
             for (c in 1 until 9 step 3) {
                 val lut = findInSquares(r, c)
-                for (i in -1 until 2) {
-                    for (j in -1 until 2) {
-                        if (this.sudoku[r + i][c + j]?.value == 0)
-                            this.sudoku[r + i][c + j]?.lut = ArrayList(lut)
+                for (i in -1 .. 1) {
+                    for (j in -1 .. 1) {
+                        if (sudoku[r + i][c + j]?.value == 0)
+                            sudoku[r + i][c + j]?.lut = ArrayList(lut)
                     }
                 }
             }
@@ -78,21 +75,21 @@ class Sudoku (input: Array<IntArray>){
     private fun removeFromLut(row: Int, colum: Int, toRemove: Int) {
         val squareMidRow = (row/3)*3+1
         val squareMidCol = (colum/3)*3+1
-        println("Square Middle for $row,$colum is $squareMidRow,$squareMidCol, value is $toRemove")
-        for(i in -1 until 2){
-            for (j in -1 until 2){
-                sudoku[squareMidRow+i][squareMidCol+j]?.lut?.removeAll(listOf(toRemove))
+        //println("Square Middle for $row,$colum is $squareMidRow,$squareMidCol, value is $toRemove")
+        for(i in -1 .. 1){
+            for (j in -1 .. 1){
+                sudoku[squareMidRow+i][squareMidCol+j]?.lut?.remove(toRemove)
                 if(sudoku[squareMidRow+i][squareMidCol+j]?.lut?.size!! == 1) {
                     readyCells.add(Pair(squareMidRow+i,squareMidCol+j))
                 }
             }
         }
         for(i in 0 until 9){
-            sudoku[row][i]?.lut?.removeAll(listOf(toRemove))
+            sudoku[row][i]?.lut?.remove(toRemove)
             if(sudoku[row][i]?.lut?.size!! == 1) {
                 readyCells.add(Pair(row,i))
             }
-            sudoku[i][colum]?.lut?.removeAll(listOf(toRemove))
+            sudoku[i][colum]?.lut?.remove(toRemove)
             if(sudoku[i][colum]?.lut?.size!! == 1) {
                 readyCells.add(Pair(i,colum))
             }
@@ -100,45 +97,32 @@ class Sudoku (input: Array<IntArray>){
     }
 
     /** @param coordinate coordinate of row/column
-     *  @param direction direction that is checked, true for row 0-9, false for column 0-9
+     *  @param isColumn direction that is checked, true for row 0-9, false for column 0-9
      *  @return A list of possibilities that need to be removed
      */
-    private fun findInRowColumn(coordinate: Int, direction: Boolean ): MutableList<Int> {
+    private fun findInRowColumn(coordinate: Int, isColumn: Boolean ): MutableList<Int> {
         val lut = mutableListOf<Int>()
-        var row: Int
-        var col: Int
-        for(i in 0 until 9) {
-            if(direction) {
-                row = i
-                col = coordinate
-            } else {
-                row = coordinate
-                col = i
-            }
-            if(this.sudoku[row][col]?.value != 0)
-                this.sudoku[row][col]?.value?.let { lut.add(it) }
+        for(i in 0 until 9){
+            val value = if(isColumn) sudoku[i][coordinate]?.value else sudoku[coordinate][i]?.value
+            value?.takeIf { it != 0 }?.let { lut.add(it) }
         }
         return lut
     }
 
     private fun findInSquares(row: Int, col: Int): MutableList<Int> {
         val lut : MutableList<Int> = mutableListOf()
-        // Jump to the Middle of a block, look in all 9 directions, then drop all "0" aka not set fields.
+        // Jump to the Middle of a block, look in all 9 directions, then drop all "0" aka non set fields.
         for(r in row - 1 until row + 2) {
             for(c in col - 1 until col + 2) {
-                this.sudoku[r][c]?.let {
-                    lut.add(it.value)
-                }
+                sudoku[r][c]?.let { lut.add(it.value) }
             }
         }
-        val allNumbers: MutableList<Int> = mutableListOf(1,2,3,4,5,6,7,8,9)
-        allNumbers.removeAll(lut)
-        return allNumbers
+        return (1..9).toMutableList().apply { removeAll(lut) }
     }
 
     override fun toString(): String {
         val str = StringBuilder()
-        this.sudoku.forEachIndexed { _, row ->
+        sudoku.forEachIndexed { _, row ->
             row.forEachIndexed { _, field ->
                 if (field?.value == 0)
                     str.append("- ")
