@@ -20,7 +20,7 @@ class Sudoku (input: Array<IntArray>){
         setSquares()
         //print("rows: ")
         for(row in sudoku.indices) {
-            val lut = findInRow(row)
+            val lut = findInRowColumn(row,false)
             //print("Row lut: $lut\n")
             for(column in sudoku.indices) {
                 if(sudoku[row][column]?.lut?.size!! > 0) {
@@ -34,7 +34,7 @@ class Sudoku (input: Array<IntArray>){
         }
         //print("\n cols: ")
         for(col in sudoku.indices) {
-            val lut = findInColumn(col)
+            val lut = findInRowColumn(col,true)
             //print("Col lut: $lut\n")
             for(row in sudoku.indices) {
                 if(sudoku[row][col]?.lut?.size!! > 0) {
@@ -99,20 +99,24 @@ class Sudoku (input: Array<IntArray>){
         }
     }
 
-    private fun findInRow(r: Int): MutableList<Int> {
+    /** @param coordinate coordinate of row/column
+     *  @param direction direction that is checked, true for row 0-9, false for column 0-9
+     *  @return A list of possibilities that need to be removed
+     */
+    private fun findInRowColumn(coordinate: Int, direction: Boolean ): MutableList<Int> {
         val lut = mutableListOf<Int>()
+        var row: Int
+        var col: Int
         for(i in 0 until 9) {
-            if(this.sudoku[r][i]?.value != 0)
-                this.sudoku[r][i]?.value?.let { lut.add(it) }
-        }
-        return lut
-    }
-
-    private fun findInColumn(c: Int): MutableList<Int> {
-        val lut = mutableListOf<Int>()
-        for(i in 0 until 9) {
-            if(this.sudoku[i][c]?.value != 0)
-                this.sudoku[i][c]?.value?.let { lut.add(it) }
+            if(direction) {
+                row = i
+                col = coordinate
+            } else {
+                row = coordinate
+                col = i
+            }
+            if(this.sudoku[row][col]?.value != 0)
+                this.sudoku[row][col]?.value?.let { lut.add(it) }
         }
         return lut
     }
