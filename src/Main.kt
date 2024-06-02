@@ -5,10 +5,10 @@ fun main() {
     val input = Input()
     val sudoku = Sudoku(input.getInput())
 
-    sudoku.print()
+    println(sudoku.toString())
     sudoku.solve()
 
-    sudoku.print()
+    println(sudoku.toString())
 }
 
 
@@ -32,7 +32,7 @@ class Sudoku (input: Array<IntArray>){
                 }
             }
         }
-        //print("\ncols: ")
+        //print("\n cols: ")
         for(col in sudoku.indices) {
             val lut = findInColumn(col)
             //print("Col lut: $lut\n")
@@ -49,11 +49,15 @@ class Sudoku (input: Array<IntArray>){
                 }
             }
         }
-        println(readyCells)
         while(readyCells.isNotEmpty()) {
+            println(readyCells)
             val prc = readyCells.poll()
-            sudoku[prc.first][prc.second]?.value = sudoku[prc.first][prc.second]?.lut?.first()!!
-            removeFromLut(prc.first, prc.second)
+            if(sudoku[prc.first][prc.second]?.lut?.size == 0)
+                continue
+            val toSet = sudoku[prc.first][prc.second]?.lut?.first()!!
+            sudoku[prc.first][prc.second]?.value = toSet
+            removeFromLut(prc.first, prc.second, toSet)
+            println(toString())
         }
     }
 
@@ -71,8 +75,28 @@ class Sudoku (input: Array<IntArray>){
         }
     }
 
-    private fun removeFromLut(row: Int, colum: Int) {
-
+    private fun removeFromLut(row: Int, colum: Int, toRemove: Int) {
+        val squareMidRow = (row/3)*3+1
+        val squareMidCol = (colum/3)*3+1
+        println("Square Middle for $row,$colum is $squareMidRow,$squareMidCol, value is $toRemove")
+        for(i in -1 until 2){
+            for (j in -1 until 2){
+                sudoku[squareMidRow+i][squareMidCol+j]?.lut?.removeAll(listOf(toRemove))
+                if(sudoku[squareMidRow+i][squareMidCol+j]?.lut?.size!! == 1) {
+                    readyCells.add(Pair(squareMidRow+i,squareMidCol+j))
+                }
+            }
+        }
+        for(i in 0 until 9){
+            sudoku[row][i]?.lut?.removeAll(listOf(toRemove))
+            if(sudoku[row][i]?.lut?.size!! == 1) {
+                readyCells.add(Pair(row,i))
+            }
+            sudoku[i][colum]?.lut?.removeAll(listOf(toRemove))
+            if(sudoku[i][colum]?.lut?.size!! == 1) {
+                readyCells.add(Pair(i,colum))
+            }
+        }
     }
 
     private fun findInRow(r: Int): MutableList<Int> {
@@ -107,24 +131,26 @@ class Sudoku (input: Array<IntArray>){
         allNumbers.removeAll(lut)
         return allNumbers
     }
-    
-    fun print() {
-        this.sudoku.forEachIndexed { r, row ->
-            row.forEachIndexed { c, field ->
+
+    override fun toString(): String {
+        val str = StringBuilder()
+        this.sudoku.forEachIndexed { _, row ->
+            row.forEachIndexed { _, field ->
                 if (field?.value == 0)
-                    print("- ")
+                    str.append("- ")
                 else
-                    print("${field?.value} ")
+                    str.append("${field?.value} ")
             }
-            println()
+            str.append("\n")
         }
+        return str.toString()
     }
 
     private fun readInput(sudokuInput: Array<IntArray>): Array<Array<Field?>> {
-        val sudoku: Array<Array<Field?>> = Array(9) { Array<Field?>(9) { null } }
+        val sudoku: Array<Array<Field?>> = Array(9) { Array(9) { null } }
         sudokuInput.forEachIndexed { r, row ->
             row.forEachIndexed { c, value ->
-                sudoku[r][c] = Field(value, (r / 3) * 3 + c / 3 + 1)
+                sudoku[r][c] = Field(value)
             }
         }
         return sudoku
@@ -132,6 +158,6 @@ class Sudoku (input: Array<IntArray>){
 }
 
 
-class Field (var value: Int, var square: Int){
+class Field(var value: Int){
     var lut: MutableList<Int> = mutableListOf()
 }
